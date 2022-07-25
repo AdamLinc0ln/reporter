@@ -2,21 +2,25 @@ const http = require('http')
 const axios = require('axios')
 const {sendKeys} = require("../../automation_tests/resources/classes/classes");
 const {string} = require("yargs");
-let dataHolder;
 let newSpecReporter = {
-
+    logInfo: {},
     jasmineStarted: function(suiteInfo){
-        console.log('Running suite with ' + suiteInfo.totalSpecsDefined)
+        console.log('Running suite with ' + suiteInfo.totalSpecsDefined),
+        this.setData('jasmineStarted', suiteInfo.totalSpecsDefined, this.logInfo);
     },
     suiteStarted: function(result){
         console.log('Suite started: ' + result.description + ' whose full description is: ' + result.fullName);
-        dataHolder = 'Suite started: ' + result.description + ' whose full description is: ' + result.fullName;
-        console.log("this is the data holder string: " + dataHolder);
+        let suiteString = 'Suite started: ' + result.description + ' whose full description is: ' + result.fullName;
+        this.setData('suiteStarted', suiteString, this.logInfo);
+        //console.log("this is the data holder string: " + dataHolder);
+        //dataHolder = 'Suite started: ' + result.description + ' whose full description is: ' + result.fullName;
 
     },
     specStarted: function(result){
         console.log('Spec started: ' + result.description
             + ' whose full description is: ' + result.fullName);
+        let specString = 'Spec start ' + result.description + ' whose full description is: ' + result.fullName;
+        this.setData('Spec started', specString, this.logInfo)
     },
     specDone: function (result){
         console.log('Spec: ' + result.description + ' was ' + result.status);
@@ -25,7 +29,6 @@ let newSpecReporter = {
             console.log('Failure: ' + result.failedExpectations[i].message);
             console.log(result.failedExpectations[i].stack);
         }
-
         console.log(result.passedExpectations.length);
     },
     suiteDone: function(result){
@@ -41,76 +44,28 @@ let newSpecReporter = {
             console.log('Global ' + result.failedExpectations.length[i].message);
             console.log(result.failedExpectations[i].stack);
         }
+        //call post request from here
+        postRequest(this.getData());
+        //post request needs to take the data object
+    },
+    setData: function(step, data, obj){
+        obj[step] = data;
+    },
+    getData: function(){
+        return this.logInfo;
     }
-
 }
-async function postRequest(){
-    let payload = { text: 'Goal sent from automation'};
+
+async function postRequest(parameter){
+    for(var i = 0; i < newSpecReporter.getData().length; i++){
+        console.log(newSpecReporter.getData().length[i].message);
+    }
+    console.log(parameter);
+    let payload = JSON.stringify(parameter);
     let res = await axios.post('http://localhost:5000/api/goals', payload);
 
     let data = res.data;
     console.log(data);
 }
 
-postRequest();
-
-
-// axios.post('http://localhost:5000/api/goals', "Some text example").then((res)=>{
-//     console.log(`Status: ${res.status}`);
-//     console.log(`Body: ${res.data}`);
-// }).catch((err) => {
-//     console.log(err);
-// });
-
-
-
-/*const sendHTTPRequest = (method, url, data) => {
-    const promise = new Promise((resolve, reject) =>{
-        const xhr = new XMLHttpRequest();
-        xhr.open(method, url);
-
-        xhr.responseType = 'json';
-        if(data){
-            xhr.setRequestHeader('Content-Type', 'application/json');
-        }
-
-        xhr.onload = () => {
-            if (xhr.status >= 400) {
-                reject(xhr.response);
-            } else {
-                resolve(xhr.response);
-            }
-        };
-
-        xhr.onerror = () => {
-            reject('Something went wrong!');
-        };
-
-        xhr.send(JSON.stringify(data));
-    });
-    return promise;
-};
-
-const getData = () => {
-    sendHTTPRequest('GET','http://localhost:5000/api/goals').then(responseData => {
-        console.log(responseData);
-    });
-};
-
-const sendData = () => {
-    sendHTTPRequest('POST', 'http://localhost:5000/api/goals', dataHolder).then(responseData => {
-        console.log(responseData);
-    }).catch(err => {
-        console.log(err);
-    });
-};
-sendData();*/
-
-//create a test holder object
-
-//put some test info into the object
-
-//make http post request to local server
-
-//check mongodb for info
 module.exports = newSpecReporter;
